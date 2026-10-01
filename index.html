@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Classes</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%234285f4'/%3E%3Cpath d='M9 21V11h3l4 6 4-6h3v10h-2.6v-6.2L16 20l-4.4-5.2V21z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0e1014; --panel:#161a22; --panel2:#1e232e; --line:#2b3140;
+    --fg:#e8ecf4; --muted:#8b93a6; --accent:#5b8cff; --danger:#ff6060;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+
+  header{
+    display:flex; align-items:center; gap:6px;
+    padding:8px 10px; background:var(--panel);
+    border-bottom:1px solid var(--line); flex:0 0 auto;
+  }
+  .nav{
+    display:flex; align-items:center; justify-content:center;
+    width:34px; height:34px; flex:0 0 auto;
+    border:1px solid transparent; border-radius:9px;
+    background:transparent; color:var(--muted);
+    cursor:pointer; font-size:16px; transition:.12s;
+  }
+  .nav:hover:not(:disabled){background:var(--panel2); color:var(--fg); border-color:var(--line)}
+  .nav:disabled{opacity:.3; cursor:default}
+
+  .omnibox{
+    flex:1 1 auto; display:flex; align-items:center; gap:8px;
+    background:var(--panel2); border:1px solid var(--line);
+    border-radius:10px; padding:0 10px; height:38px;
+    min-width:120px; transition:.15s;
+  }
+  .omnibox:focus-within{border-color:var(--accent); box-shadow:0 0 0 3px rgba(91,140,255,.14)}
+  .omnibox .lock{color:var(--muted); font-size:12px; flex:0 0 auto}
+  #address{
+    flex:1 1 auto; min-width:0; background:transparent; border:0; outline:0;
+    color:var(--fg); font-size:13.5px; font-family:inherit;
+  }
+  #address::placeholder{color:var(--muted)}
+
+  select{
+    flex:0 0 auto; background:var(--panel2); color:var(--fg);
+    border:1px solid var(--line); border-radius:10px;
+    height:38px; padding:0 8px; font:inherit; font-size:12.5px;
+    outline:0; cursor:pointer; max-width:110px;
+  }
+  select:focus{border-color:var(--accent)}
+
+  .go{
+    flex:0 0 auto; height:38px; padding:0 15px;
+    background:var(--accent); color:#fff; border:0; border-radius:10px;
+    font:inherit; font-weight:600; cursor:pointer; transition:.12s;
+  }
+  .go:hover{filter:brightness(1.1)}
+  .go:active{transform:translateY(1px)}
+
+  main{position:relative; flex:1 1 auto; min-height:0; background:#000}
+
+  #frame, #snap{
+    position:absolute; inset:0; width:100%; height:100%;
+    border:0; background:#fff; display:none;
+  }
+  #frame.on, #snap.on{display:block}
+
+  #reader{
+    position:absolute; inset:0; overflow:auto; display:none;
+    background:#fbfbfd; color:#16181d; padding:38px 22px 90px;
+  }
+  #reader.on{display:block}
+  #reader .doc{
+    max-width:760px; margin:0 auto;
+    font:16px/1.68 Georgia,"Times New Roman",serif;
+  }
+  #reader .doc h1,#reader .doc h2,#reader .doc h3{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    line-height:1.25; margin:1.7em 0 .55em; letter-spacing:-.01em;
+  }
+  #reader .doc h1{font-size:1.85em; margin-top:0}
+  #reader .doc h2{font-size:1.4em}
+  #reader .doc h3{font-size:1.15em}
+  #reader .doc p{margin:0 0 1.05em}
+  #reader .doc a{color:#1a56db; text-decoration:none; border-bottom:1px solid rgba(26,86,219,.3)}
+  #reader .doc a:hover{border-bottom-color:#1a56db}
+  #reader .doc code{
+    background:#eceef3; border-radius:4px; padding:.1em .35em;
+    font:.86em/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  #reader .doc pre{
+    background:#f2f3f7; border:1px solid #e0e3ea; border-radius:9px;
+    padding:13px 15px; overflow:auto;
+  }
+  #reader .doc pre code{background:none; padding:0}
+  #reader .doc blockquote{
+    margin:0 0 1.05em; padding:.15em 0 .15em 1em;
+    border-left:3px solid #d3d7e0; color:#4d5361;
+  }
+  #reader .doc ul{margin:0 0 1.05em; padding-left:1.35em}
+  #reader .doc li{margin:.22em 0}
+  #reader .doc img{max-width:100%; height:auto; border-radius:6px}
+  #reader .srcbar{
+    max-width:760px; margin:0 auto 26px; padding-bottom:14px;
+    border-bottom:1px solid #e0e3ea;
+    font:12.5px/1.5 system-ui,sans-serif; color:#6a7180;
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  }
+  #reader .srcbar .tag{
+    background:#e7ebf5; color:#3d4a63; border-radius:20px;
+    padding:2px 9px; font-weight:600; font-size:11px;
+  }
+
+  .overlay{
+    position:absolute; inset:0; display:flex;
+    align-items:center; justify-content:center; padding:24px;
+    background:var(--bg); overflow:auto; z-index:5;
+  }
+  .overlay[hidden]{display:none}
+
+  .card{
+    width:100%; max-width:640px; background:var(--panel);
+    border:1px solid var(--line); border-radius:16px; padding:26px 26px 22px;
+    text-align:center;
+  }
+  .card h1{margin:0 0 6px; font-size:20px; letter-spacing:-.01em}
+  .card h2{margin:0 0 10px; font-size:17px; line-height:1.35}
+  .card p{margin:0 0 16px; color:var(--muted); font-size:13.5px}
+  .card .url{
+    display:block; word-break:break-all;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:12px; color:var(--fg); background:var(--panel2);
+    border:1px solid var(--line); border-radius:9px;
+    padding:9px 11px; margin:0 0 16px; text-align:left; max-height:76px; overflow:auto;
+  }
+  .row{display:flex; flex-wrap:wrap; gap:8px; justify-content:center}
+  .btn{
+    background:var(--panel2); color:var(--fg);
+    border:1px solid var(--line); border-radius:9px;
+    padding:9px 15px; font:inherit; font-size:13px;
+    cursor:pointer; transition:.12s;
+  }
+  .btn:hover{border-color:var(--accent); color:#fff}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600}
+  .btn.primary:hover{filter:brightness(1.1)}
+
+  .quick{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+    gap:8px; margin-top:18px;
+  }
+  .quick a{
+    display:block; padding:11px 12px; text-align:left;
+    background:var(--panel2); border:1px solid var(--line);
+    border-radius:10px; color:var(--fg); text-decoration:none;
+    font-size:13px; transition:.12s;
+  }
+  .quick a:hover{border-color:var(--accent); transform:translateY(-1px)}
+  .quick a span{display:block; color:var(--muted); font-size:11px; margin-top:2px}
+
+  .note{
+    margin-top:18px; padding-top:16px; border-top:1px solid var(--line);
+    color:var(--muted); font-size:12px; text-align:left; line-height:1.6;
+  }
+  .note code{
+    background:var(--panel2); border:1px solid var(--line);
+    border-radius:5px; padding:1px 5px; font-size:11.5px;
+  }
+
+  .spin{
+    width:26px; height:26px; margin:0 auto 14px;
+    border:2.5px solid var(--line); border-top-color:var(--accent);
+    border-radius:50%; animation:sp .7s linear infinite;
+  }
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  @media (max-width:640px){
+    header{flex-wrap:wrap}
+    .omnibox{order:3; flex-basis:100%}
+    select{flex:1 1 auto; max-width:none}
+    #reader{padding:22px 15px 70px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <button class="nav" id="back"    title="Back (Alt+←)"     aria-label="Back">‹</button>
+  <button class="nav" id="forward" title="Forward (Alt+→)"  aria-label="Forward">›</button>
+  <button class="nav" id="reload"  title="Reload"           aria-label="Reload">⟳</button>
+  <button class="nav" id="home"    title="Home"             aria-label="Home">⌂</button>
+
+  <div class="omnibox">
+    <span class="lock" id="lock">⌕</span>
+    <input id="address" type="text" spellcheck="false" autocomplete="off"
+           placeholder="Enter a URL or search the web…">
+  </div>
+
+  <select id="engine" title="Search engine"></select>
+  <select id="mode" title="Load mode">
+    <option value="auto">Auto</option>
+    <option value="direct">Direct</option>
+    <option value="reader">Reader</option>
+    <option value="snapshot">Snapshot</option>
+  </select>
+  <button class="go" id="go">Go</button>
+</header>
+
+<main>
+  <iframe id="frame" referrerpolicy="no-referrer"
+          allow="clipboard-write; fullscreen"></iframe>
+
+  <iframe id="snap"
+          sandbox="allow-popups allow-popups-to-escape-sandbox"
+          referrerpolicy="no-referrer"></iframe>
+
+  <div id="reader"><div class="doc" id="readerDoc"></div></div>
+
+  <!-- loading -->
+  <div class="overlay" id="loading" hidden>
+    <div class="card" style="max-width:300px">
+      <div class="spin"></div>
+      <p style="margin:0" id="loadingMsg">Connecting…</p>
+    </div>
+  </div>
+
+  <!-- blocked / failed -->
+  <div class="overlay" id="blocked" hidden>
+    <div class="card">
+      <h2 id="blockedTitle">This site refused to load in a frame</h2>
+      <p id="blockedMsg">
+        The server sent <code>X-Frame-Options</code> or a
+        <code>frame-ancestors</code> CSP directive. A plain iframe cannot
+        override those — only a real service-worker proxy can.
+      </p>
+      <code class="url" id="blockedUrl"></code>
+      <div class="row">
+        <button class="btn primary" id="tryReader">Reader mode</button>
+        <button class="btn" id="trySnap">Snapshot</button>
+        <button class="btn" id="openTab">New tab</button>
+        <button class="btn" id="copy">Copy URL</button>
+        <button class="btn" id="backHome">Home</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- start page -->
+  <div class="overlay" id="start">
+    <div class="card">
+      <h1>Viewer</h1>
+      <p>Type a URL or a search query above.</p>
+
+      <div class="quick" id="quick"></div>
+
+      <div class="note">
+        <strong style="color:var(--fg)">Why some sites won't load directly.</strong><br>
+        <code>frame-ancestors</code> and <code>X-Frame-Options</code> are enforced
+        by the browser before your page can intervene. A single HTML file cannot
+        strip them — that requires a Service Worker in a separate
+        <code>sw.js</code> on your own origin, plus a Wisp/WebSocket backend and
+        a rewriter (Scramjet / Ultraviolet). Since browsers reject
+        <code>blob:</code> and <code>data:</code> URLs for worker registration,
+        it cannot be inlined here.
+        <br><br>
+        <strong style="color:var(--fg)">Workarounds in this file:</strong>
+        <em>Reader</em> pulls clean text through a CORS-enabled extractor;
+        <em>Snapshot</em> fetches raw HTML via a CORS proxy and renders it with
+        scripts disabled. Both are read-only.
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ---------------- search engines ---------------- */
+  const ENGINES = {
+    duckduckgo: { label: "DuckDuckGo", url: "https://duckduckgo.com/?q=%s" },
+    google:     { label: "Google",     url: "https://www.google.com/search?q=%s" },
+    bing:       { label: "Bing",       url: "https://www.bing.com/search?q=%s" },
+    brave:      { label: "Brave",      url: "https://search.brave.com/search?q=%s" },
+    wikipedia:  { label: "Wikipedia",  url: "https://en.wikipedia.org/w/index.php?search=%s" }
+  };
+
+  const QUICK_LINKS = [
+    { name: "Wikipedia",         sub: "wikipedia.org",     url: "https://en.wikipedia.org" },
+    { name: "Hacker News",       sub: "news.ycombinator",  url: "https://news.ycombinator.com" },
+    { name: "MDN",               sub: "developer.mozilla", url: "https://developer.mozilla.org" },
+    { name: "Internet Archive",  sub: "archive.org",       url: "https://archive.org" },
+    { name: "OpenStreetMap",     sub: "openstreetmap.org", url: "https://www.openstreetmap.org" },
+    { name: "Project Gutenberg", sub: "gutenberg.org",     url: "https://www.gutenberg.org" }
+  ];
+
+  /* ---------------- dom ---------------- */
+  const $ = id => document.getElementById(id);
+
+  const frame      = $("frame");
+  const snap       = $("snap");
+  const reader     = $("reader");
+  const readerDoc  = $("readerDoc");
+  const address    = $("address");
+  const engineSel  = $("engine");
+  const modeSel    = $("mode");
+  const lock       = $("lock");
+  const btnBack    = $("back");
+  const btnForward = $("forward");
+  const btnReload  = $("reload");
+  const btnHome    = $("home");
+  const btnGo      = $("go");
+
+  const ovLoading  = $("loading");
+  const loadingMsg = $("loadingMsg");
+  const ovBlocked  = $("blocked");
+  const ovStart    = $("start");
+  const blockedUrl = $("blockedUrl");
+  const blockedTitle = $("blockedTitle");
+  const blockedMsg   = $("blockedMsg");
+
+  /* ---------------- state ---------------- */
+  const hist = { stack: [], index: -1 };
+  let currentUrl = null;
+  let token = 0;                 // invalidates stale async work
+  let watchdog = null;
+  const PANIC_URL = "https://classroom.google.com/";
+
+  /* ---------------- url parsing ---------------- */
+  function toUrl(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return null;
+    if (/^[a-z][a-z0-9+.\-]*:\/\//i.test(s)) return s;
+    if (/^(mailto|tel):/i.test(s)) return s;
+    if (/\s/.test(s)) return null;
+
+    const hostish =
+      /^localhost(:\d+)?(\/.*)?$/i.test(s) ||
+      /^\d{1,3}(\.\d{1,3}){3}(:\d+)?(\/.*)?$/.test(s) ||
+      /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(:\d+)?(\/.*)?$/i.test(s);
+
+    return hostish ? "https://" + s : null;
+  }
+
+  function resolve(raw) {
+    const u = toUrl(raw);
+    if (u) return { url: u, isSearch: false };
+    const eng = ENGINES[engineSel.value] || ENGINES.duckduckgo;
+    return { url: eng.url.replace("%s", encodeURIComponent(raw)), isSearch: true };
+  }
+
+  /* ---------------- overlays ---------------- */
+  function hideOverlays() {
+    ovLoading.hidden = true;
+    ovBlocked.hidden = true;
+    ovStart.hidden   = true;
+  }
+  function showStart() {
+    hideOverlays();
+    ovStart.hidden = false;
+    frame.classList.remove("on");
+    snap.classList.remove("on");
+    reader.classList.remove("on");
+  }
+  function showLoading(msg) {
+    hideOverlays();
+    loadingMsg.textContent = msg || "Connecting…";
+    ovLoading.hidden = false;
+  }
+  function showBlocked(url, title, msg) {
+    hideOverlays();
+    ovBlocked.hidden = false;
+    blockedTitle.textContent = title;
+    blockedMsg.innerHTML = msg;
+    blockedUrl.textContent = url;
+    blockedUrl.dataset.url = url;
+  }
+  function showPane(which) {
+    hideOverlays();
+    frame.classList.toggle("on", which === "frame");
+    snap.classList.toggle("on", which === "snap");
+    reader.classList.toggle("on", which === "reader");
+  }
+
+  function setLock(url) {
+    lock.textContent = !url ? "⌕" : url.startsWith("https://") ? "🔒" : "⚠";
+  }
+
+  /* ---------------- direct iframe ---------------- */
+  function isBlankFrame() {
+    try {
+      const d = frame.contentDocument;
+      if (!d) return true;
+      if (d.location.href === "about:blank") return true;
+      if (!d.body || d.body.childElementCount === 0) return true;
+      return false;
+    } catch (_) {
+      return false; // cross-origin readable failure => real content
+    }
+  }
+
+  function loadDirect(url, myToken) {
+    showLoading("Loading…");
+    showPane("frame");
+
+    clearTimeout(watchdog);
+    watchdog = setTimeout(() => {
+      if (myToken !== token) return;
+      showBlocked(url, "Timed out",
+        "No response from the server, or it silently refused to be framed.");
+    }, 12000);
+
+    frame.onload = () => {
+      if (myToken !== token) return;
+      clearTimeout(watchdog);
+      // Give the document a beat to populate before judging it empty.
+      setTimeout(() => {
+        if (myToken !== token) return;
+        if (isBlankFrame()) {
+          showBlocked(url, "This site refused to load in a frame",
+            "It sent <code>X-Frame-Options</code> or a " +
+            "<code>frame-ancestors</code> CSP directive. An iframe cannot " +
+            "override those — only a real service-worker proxy can. " +
+            "Try <strong>Reader</strong> or <strong>Snapshot</strong> below.");
+        } else {
+          hideOverlays();
+        }
+      }, 450);
+    };
+
+    frame.src = url;
+  }
+
+  /* ---------------- reader (r.jina.ai) ---------------- */
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, c =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
+
+  function inlineMd(s) {
+    return esc(s)
+      .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, '<img alt="$1" src="$2">')
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,
+        '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[\s(])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>");
+  }
+
+  function mdToHtml(md) {
+    const lines = String(md).split(/\r?\n/);
+    let out = "", inCode = false, inList = false, buf = [];
+
+    const endList = () => { if (inList) { out += "</ul>"; inList = false; } };
+    const flush   = () => {
+      if (buf.length) { out += "<p>" + buf.join(" ") + "</p>"; buf = []; }
+      endList();
+    };
+
+    for (const raw of lines) {
+      const line = raw.replace(/\s+$/, "");
+
+      if (/^\s*```/.test(line)) {
+        flush();
+        inCode = !inCode;
+        out += inCode ? "<pre><code>" : "</code></pre>";
+        continue;
+      }
+      if (inCode) { out += esc(raw) + "\n"; continue; }
+
+      if (!line.trim()) { flush(); continue; }
+
+      let m;
+      if ((m = line.match(/^(#{1,6})\s+(.*)$/))) {
+        flush();
+        const lvl = Math.min(m[1].length, 6);
+        out += `<h${lvl}>${inlineMd(m[2])}</h${lvl}>`;
+        continue;
+      }
+      if ((m = line.match(/^\s*[-*+]\s+(.*)$/))) {
+        if (buf.length) { out += "<p>" + buf.join(" ") + "</p>"; buf = []; }
+        if (!inList) { out += "<ul>"; inList = true; }
+        out += "<li>" + inlineMd(m[1]) + "</li>";
+        continue;
+      }
+      if ((m = line.match(/^>\s?(.*)$/))) {
+        flush();
+        out += "<blockquote>" + inlineMd(m[1]) + "</blockquote>";
+        continue;
+      }
+      if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+        flush();
+        out += "<hr>";
+        continue;
+      }
+      if (/^\s*\|/.test(line)) continue; // drop tables, keep it simple
+
+      if (inList) { flush(); }
+      buf.push(inlineMd(line));
+    }
+    flush();
+    return out;
+  }
+
+  async function loadReader(url, myToken) {
+    showLoading("Extracting readable text…");
+    try {
+      const res = await fetch("https://r.jina.ai/" + url, {
+        headers: { "Accept": "text/plain" }
+      });
+      if (myToken !== token) return;
+      if (!res.ok) throw new Error("HTTP " + res.status);
+
+      const text = await res.text();
+      if (myToken !== token) return;
+
+      const doc = document.createElement("div");
+      doc.innerHTML =
+        '<div class="srcbar"><span class="tag">READER</span>' +
+        '<span>' + esc(url) + '</span></div>' +
+        '<div class="doc">' + mdToHtml(text) + '</div>';
+
+      readerDoc.replaceChildren(...doc.childNodes);
+      showPane("reader");
+      reader.scrollTop = 0;
+    } catch (err) {
+      if (myToken !== token) return;
+      showBlocked(url, "Reader mode failed",
+        "Could not reach the text extractor. " + esc(err.message) +
+        ". You can still open the page in a new tab.");
+    }
+  }
+
+  /* ---------------- snapshot (CORS proxy + sandboxed iframe) ---------------- */
+  const SNAPSHOT_PROXIES = [
+    u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+    u => "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u),
+    u => "https://corsproxy.io/?" + encodeURIComponent(u)
+  ];
+
+  function buildSnapshot(html, url) {
+    // Drop scripts entirely — the sandbox blocks execution anyway, and this
+    // avoids pointless subresource fetches.
+    let out = html
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<base\b[^>]*>/gi, "")
+      .replace(/<meta[^>]+http-equiv\s*=\s*["']?content-security-policy["']?[^>]*>/gi, "");
+
+    const inject =
+      '<base href="' + esc(url) + '" target="_blank">' +
+      '<meta name="referrer" content="no-referrer">';
+
+    if (/<head[^>]*>/i.test(out)) {
+      out = out.replace(/<head[^>]*>/i, m => m + inject);
+    } else if (/<html[^>]*>/i.test(out)) {
+      out = out.replace(/<html[^>]*>/i, m => m + "<head>" + inject + "</head>");
+    } else {
+      out = "<head>" + inject + "</head>" + out;
+    }
+    return out;
+  }
+
+  async function loadSnapshot(url, myToken) {
+    showLoading("Fetching raw HTML…");
+
+    let html = null, lastErr = null;
+    for (const proxy of SNAPSHOT_PROXIES) {
+      try {
+        const res = await fetch(proxy(url));
+        if (myToken !== token) return;
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const t = await res.text();
+        if (myToken !== token) return;
+        if (t && t.length > 40) { html = t; break; }
+        throw new Error("Empty response");
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+
+    if (myToken !== token) return;
+
+    if (html == null) {
+      showBlocked(url, "Snapshot failed",
+        "No CORS proxy returned the page. " + esc(lastErr ? lastErr.message : "") +
+        ". Try Reader mode, or open the page in a new tab.");
+      return;
+    }
+
+    snap.srcdoc = buildSnapshot(html, url);
+    showPane("snap");
+  }
+
+  /* ---------------- navigate ---------------- */
+  function navigate(raw, opts) {
+    opts = opts || {};
+    const push = opts.push !== false;
+
+    const target = /^[a-z][a-z0-9+.\-]*:\/\//i.test(raw) || /^(mailto|tel):/i.test(raw)
+      ? raw
+      : resolve(raw).url;
+
+    if (!target) return;
+
+    currentUrl = target;
+    address.value = target;
+    setLock(target);
+
+    if (push) {
+      hist.stack = hist.stack.slice(0, hist.index + 1);
+      hist.stack.push(target);
+      hist.index = hist.stack.length - 1;
+      syncNav();
+      try { history.pushState({ i: hist.index }, "", "#" + encodeURIComponent(target)); }
+      catch (_) {}
+    }
+
+    const myToken = ++token;
+    clearTimeout(watchdog);
+
+    const mode = opts.mode || modeSel.value;
+    if (mode === "reader")        return loadReader(target, myToken);
+    if (mode === "snapshot")      return loadSnapshot(target, myToken);
+    if (mode === "direct")        return loadDirect(target, myToken);
+
+    // auto: try direct, fall back to the blocked card with alternatives
+    loadDirect(target, myToken);
+  }
+
+  function syncNav() {
+    btnBack.disabled    = hist.index <= 0;
+    btnForward.disabled = hist.index >= hist.stack.length - 1;
+    btnReload.disabled  = !currentUrl;
+  }
+
+  function step(delta) {
+    const next = hist.index + delta;
+    if (next < 0 || next >= hist.stack.length) return;
+    hist.index = next;
+    const url = hist.stack[next];
+    currentUrl = url;
+    address.value = url;
+    setLock(url);
+    syncNav();
+    navigate(url, { push: false, mode: modeSel.value });
+  }
+
+  function goHome() {
+    token++;
+    clearTimeout(watchdog);
+    currentUrl = null;
+    address.value = "";
+    setLock(null);
+    frame.removeAttribute("src");
+    snap.removeAttribute("srcdoc");
+    showStart();
+    syncNav();
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (_) {}
+  }
+
+  /* ---------------- panic key + cloaking ---------------- */
+  document.addEventListener("keydown", e => {
+    const t = e.target;
+    const typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" ||
+                         t.tagName === "SELECT" || t.isContentEditable);
+
+    // Panic: Ctrl+Shift+H  → jump to a benign site and wipe history
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "h") {
+      e.preventDefault();
+      try {
+        hist.stack = []; hist.index = -1;
+        history.replaceState(null, "", location.pathname + location.search);
+      } catch (_) {}
+      frame.removeAttribute("src");
+      snap.removeAttribute("srcdoc");
+      currentUrl = null;
+      address.value = "";
+      setLock(null);
+      showStart();
+      syncNav();
+      location.replace(PANIC_URL);
+      return;
+    }
+
+    if (typing) return;
+
+    if (e.altKey && e.key === "ArrowLeft")  { e.preventDefault(); step(-1); }
+    if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); step(1); }
+  });
+
+  document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "l") {
+      e.preventDefault();
+      address.focus();
+    }
+  });
+
+  // Cloak the tab whenever the page loses focus
+  const REAL_TITLE = "Classes";
+  const CLOAK_TITLE = "My Drive - Google Drive";
+  document.title = CLOAK_TITLE;
+  window.addEventListener("blur",  () => { document.title = CLOAK_TITLE; });
+  window.addEventListener("focus", () => { document.title = REAL_TITLE; });
+
+  /* ---------------- wiring ---------------- */
+  Object.keys(ENGINES).forEach(k => {
+    const o = document.createElement("option");
+    o.value = k;
+    o.textContent = ENGINES[k].label;
+    engineSel.appendChild(o);
+  });
+  try {
+    const savedEng  = localStorage.getItem("viewer.engine");
+    const savedMode = localStorage.getItem("viewer.mode");
+    if (savedEng  && ENGINES[savedEng]) engineSel.value = savedEng;
+    if (savedMode && ["auto","direct","reader","snapshot"].includes(savedMode))
+      modeSel.value = savedMode;
+  } catch (_) {}
+
+  engineSel.addEventListener("change", () => {
+    try { localStorage.setItem("viewer.engine", engineSel.value); } catch (_) {}
+  });
+  modeSel.addEventListener("change", () => {
+    try { localStorage.setItem("viewer.mode", modeSel.value); } catch (_) {}
+    if (currentUrl) navigate(currentUrl, { push: false });
+  });
+
+  const quick = $("quick");
+  QUICK_LINKS.forEach(l => {
+    const a = document.createElement("a");
+    a.href = "#";
+    a.innerHTML = esc(l.name) + "<span>" + esc(l.sub) + "</span>";
+    a.addEventListener("click", e => { e.preventDefault(); navigate(l.url); });
+    quick.appendChild(a);
+  });
+
+  btnGo.addEventListener("click", () => {
+    const v = address.value.trim();
+    if (v) navigate(v);
+  });
+
+  address.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const v = address.value.trim();
+      if (v) navigate(v);
+    } else if (e.key === "Escape") {
+      address.value = currentUrl || "";
+      address.blur();
+    }
+  });
+  address.addEventListener("focus", () => address.select());
+
+  btnBack.addEventListener("click",    () => step(-1));
+  btnForward.addEventListener("click", () => step(1));
+  btnReload.addEventListener("click",  () => { if (currentUrl) navigate(currentUrl, { push: false }); });
+  btnHome.addEventListener("click",    goHome);
+
+  $("openTab").addEventListener("click", () => {
+    const u = blockedUrl.dataset.url;
+    if (u) window.open(u, "_blank", "noopener,noreferrer");
+  });
+  $("tryReader").addEventListener("click", () => {
+    const u = blockedUrl.dataset.url;
+    if (u) navigate(u, { push: false, mode: "reader" });
+  });
+  $("trySnap").addEventListener("click", () => {
+    const u = blockedUrl.dataset.url;
+    if (u) navigate(u, { push: false, mode: "snapshot" });
+  });
+  $("copy").addEventListener("click", async () => {
+    const u = blockedUrl.dataset.url || "";
+    try {
+      await navigator.clipboard.writeText(u);
+      $("copy").textContent = "Copied";
+      setTimeout(() => { $("copy").textContent = "Copy URL"; }, 1200);
+    } catch (_) {}
+  });
+  $("backHome").addEventListener("click", goHome);
+
+  window.addEventListener("popstate", e => {
+    const st = e.state;
+    if (st && typeof st.i === "number" && st.i !== hist.index) {
+      step(st.i - hist.index);
+    }
+  });
+
+  /* ---------------- boot ---------------- */
+  goHome();
+  const initial = decodeURIComponent((location.hash || "").replace(/^#/, ""));
+  if (initial) navigate(initial, { push: false });
+})();
+</script>
+</body>
+</html>
