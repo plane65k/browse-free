@@ -1,32 +1,54 @@
-// sw.js — serves at /browse-free/sw.js
-importScripts("https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@2/dist/scramjet.all.js");
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Viewer</title></head>
+<body>
+<div id="stage"></div>
+<input id="url" placeholder="https://example.com">
+<button id="go">Go</button>
 
-// Required: point Scramjet at its WASM + sync files
-self.$scramjet = {
-  files: {
-    wasm: "https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@2/dist/scramjet.wasm.wasm",
-    sync: "https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@2/dist/scramjet.sync.js",
-  },
-};
+<!-- 1. BareMux -->
+<script src="https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-mux@2/dist/index.js"></script>
+<!-- 2. Epoxy transport (bundled, WASM included) -->
+<script src="https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-tls@2/bundled/index.js"></script>
+<!-- 3. Scramjet all-in-one -->
+<script src="https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@2/dist/scramjet.all.js"></script>
 
-// Derive base path from the SW's own location
-const swPath = self.location.pathname;
-const basePath = swPath.substring(0, swPath.lastIndexOf("/") + 1);
+<script>
+(async () => {
+  const WISP_URL = "wss://wisp.mercurywork.shop";
 
-const { ScramjetServiceWorker } = $scramjetLoadWorker();
-const scramjet = new ScramjetServiceWorker({
-  prefix: basePath + "scramjet/",
-});
+  // Register the SW
+  const reg = await navigator.serviceWorker.register("./sw.js", { scope: "./" });
+  await navigator.serviceWorker.ready;
 
-self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
+  // Wire BareMux to Epoxy + Wisp
+  const connection = new BareMux.BareMuxConnection(
+    "https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-mux@2/dist/worker.js"
+  );
+  await connection.setTransport(
+    "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-tls@2/bundled/index.mjs",
+    [{ wisp: WISP_URL }]
+  );
 
-self.addEventListener("fetch", (event) => {
-  event.respondWith((async () => {
-    await scramjet.loadConfig();
-    if (scramjet.route(event)) {
-      return scramjet.fetch(event);
-    }
-    return fetch(event.request);
-  })());
-});
+  // Boot Scramjet controller
+  const { ScramjetController } = $scramjetLoadController();
+  const scramjet = new ScramjetController({
+    files: {
+      wasm: "https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@2/dist/scramjet.wasm.wasm",
+      all:  "https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@2/dist/scramjet.all.js",
+      sync: "https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@2/dist/scramjet.sync.js",
+    },
+  });
+  await scramjet.init();
+
+  document.getElementById("go").onclick = () => {
+    const raw = document.getElementById("url").value.trim();
+    const target = /^https?:\/\//i.test(raw) ? raw : "https://" + raw;
+    const frame = scramjet.createFrame();
+    document.getElementById("stage").replaceChildren(frame.frame);
+    frame.go(target);
+  };
+})();
+</script>
+</body>
+</html>
