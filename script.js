@@ -1,32 +1,18 @@
-// sw.js — must be served as application/javascript
-importScripts('/scramjet/scramjet.js'); // or your rewriter bundle
+// sw.js — must be served as application/javascript from the same origin
+importScripts("https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet@2/dist/scramjet.all.js");
 
-const wispUrl = 'wss://your-wisp-server.example.com/wisp/';
+const { ScramjetServiceWorker } = $scramjetLoadWorker();
+const scramjet = new ScramjetServiceWorker();
 
-// Scramjet's service worker entry point
-// In a real setup you'd import the built rewriter from the Scramjet package.
-// This is the minimal shape of what the SW must do:
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
-self.addEventListener('install', (e) => {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (e) => {
-  e.waitUntil(self.clients.claim());
-});
-
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // Only intercept requests that belong to the proxy
-  if (!url.pathname.startsWith('/scramjet/') && url.origin !== self.location.origin) {
-    return;
-  }
-
-  // Let the rewriter handle it
-  event.respondWith(
-    self.scramjet.handle(event.request, {
-      wisp: wispUrl,
-    })
-  );
+self.addEventListener("fetch", (event) => {
+  event.respondWith((async () => {
+    await scramjet.loadConfig();
+    if (scramjet.route(event)) {
+      return scramjet.fetch(event);
+    }
+    return fetch(event.request);
+  })());
 });
